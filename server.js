@@ -63,25 +63,44 @@ function Location(city, data) {
 app.get('/weather', handleWeather);
 
 function handleWeather(request, response) {
-  try {
+//   try {
   // use darksky fake data
   // eventually will be an api call
-    let weatherData = require('./data/darksky.json');
-    let listofDays = [];
-    weatherData.daily.data.map( day => {
-      let weather = new Weather(day);
-      listofDays.push(weather);
-    })
-    response.json(listofDays);
-  }
-  catch(error) {
-    let errorObject = {
-      status: 500,
-      responseText: 'john is ugly or something',
-    };
-    response.status(500).json(errorObject);
-  }
+  // let weatherData = require('./data/darksky.json');
+  let listofDays = [];
+  let url = 'https://api.darksky.net/forecast/';
+  let key = process.env.DARKSKY_TOKEN;
+  let lat = request.query.latitude;
+  let lon = request.query.longitude;
+
+  let newUrl = `${url}${key}/${lat},${lon}`;
+
+    // weatherData.daily.data.map( day => {
+    //   let weather = new Weather(day);
+    //   listofDays.push(weather);
+    // })
+
+  superagent.get(newUrl)
+    // .query(queryStringParams)
+    // .set('user-key', process.env.DARKSKY_TOKEN)
+    .then( data => {
+      let listofDays = data.body.daily.data.map( day => {
+        return new Weather(day);
+        // listofDays.push(weather);
+      });
+      response.json(listofDays);
+    });
+//   catch(error) {
+//     let errorObject = {
+//       status: 500,
+//       responseText: 'john is ugly or something',
+//     }
+//     response.status(500).json(errorObject);
+//   }
 }
+
+
+
 
 function Weather(data) {
   this.time = data.time;
@@ -92,16 +111,16 @@ function Weather(data) {
 
 // function handleRestaurants(request, response) {
 
-  // let restaurantData = require('./data/restaurants.json');
+// let restaurantData = require('./data/restaurants.json');
 //   let listOfRestaurants = [];
   
 //   let url = 'https://developers.zomato.com/api/v2.1/geocode';
 //   let queryStringParams = {
-    // lat: request.query.latitude,
-    // lon: request.query.longitude,
+// lat: request.query.latitude,
+// lon: request.query.longitude,
 //   };
   
-  // user-key
+// user-key
 //   superagent.get(url)
 //     .query(queryStringParams)
 //     .set('user-key', process.env.ZOMATO_TOKEN)
