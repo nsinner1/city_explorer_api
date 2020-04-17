@@ -8,8 +8,12 @@ require('dotenv').config();
 const cors = require('cors');
 const express = require('express');
 const superagent = require('superagent');
+const pg = require('pg');
 
 const PORT = process.env.PORT;
+
+const client = new pg.Client(process.env.DATABASE_URL);
+client.connect();
 
 const app = express();
 app.use(cors());
@@ -75,10 +79,10 @@ function handleWeather(request, response) {
 
   let newUrl = `${url}${key}/${lat},${lon}`;
 
-    // weatherData.daily.data.map( day => {
-    //   let weather = new Weather(day);
-    //   listofDays.push(weather);
-    // })
+  // weatherData.daily.data.map( day => {
+  //   let weather = new Weather(day);
+  //   listofDays.push(weather);
+  // })
 
   superagent.get(newUrl)
     // .query(queryStringParams)
@@ -99,13 +103,55 @@ function handleWeather(request, response) {
 //   }
 }
 
-
-
-
 function Weather(data) {
   this.time = data.time;
   this.forecast = data.summary;
 }
+
+
+
+
+// SQL locations
+
+app.get('/location', (req,res) => {
+  
+  const SQL = 'SELECT * FROM location';
+  
+  client.query(SQL)
+    .then( results => {
+      if( results.rowCount >= 1 ) {
+        res.status(200).json(location);
+      }
+      else {
+        res.status(400).send('No Results Found');
+      }
+    })
+    .catch(err => res.status(500).send(err));
+});
+  
+app.get('/new', (req,res) => {
+
+  
+  let SQL = `
+      INSERT INTO location (latitude, longitude)
+      VALUES($1, $2)
+    `;
+  
+  let VALUES = [req.query.latitude, req.query.longitude];
+  
+  client.query(SQL, VALUES)
+    .then( results => {
+      if ( results.rowCount >= 1 ) {
+        res.status(301).redirect('https://us1.locationiq.com/v1/search.php');
+      }
+      else {
+        res.status(200).send('Not Added');
+      }
+    })
+    .catch(err => res.status(500).send(err));
+  
+});
+
 
 // Restaurants
 
