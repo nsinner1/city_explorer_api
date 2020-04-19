@@ -22,6 +22,7 @@ app.use(cors());
 app.get('/location', handleLocation);
 
 function handleLocation( request, response ) {
+
   try {
     let city = request.query.city;
     const url = 'https://us1.locationiq.com/v1/search.php';
@@ -38,12 +39,6 @@ function handleLocation( request, response ) {
         let location = new Location(city, locationData);
         response.json(location);
       });
-    // eventually, get this from a real live API
-    // But today, pull it from a file.
-    // let locationData = require('./data/geo.json');
-    // let location = new Location(city, locationData[0]);
-    // throw 'john is ugly or something';
-    // response.json(location);
   }
   catch(error) {
     let errorObject = {
@@ -67,40 +62,33 @@ function Location(city, data) {
 app.get('/weather', handleWeather);
 
 function handleWeather(request, response) {
-//   try {
-  // use darksky fake data
-  // eventually will be an api call
-  // let weatherData = require('./data/darksky.json');
-  let listofDays = [];
-  let url = 'https://api.darksky.net/forecast/';
-  let key = process.env.DARKSKY_TOKEN;
-  let lat = request.query.latitude;
-  let lon = request.query.longitude;
+  try {
 
-  let newUrl = `${url}${key}/${lat},${lon}`;
+    // let listofDays = [];
+    let url = 'https://api.darksky.net/forecast/';
+    let key = process.env.DARKSKY_TOKEN;
+    let lat = request.query.latitude;
+    let lon = request.query.longitude;
 
-  // weatherData.daily.data.map( day => {
-  //   let weather = new Weather(day);
-  //   listofDays.push(weather);
-  // })
+    let newUrl = `${url}${key}/${lat},${lon}`;
 
-  superagent.get(newUrl)
-    // .query(queryStringParams)
-    // .set('user-key', process.env.DARKSKY_TOKEN)
-    .then( data => {
-      let listofDays = data.body.daily.data.map( day => {
-        return new Weather(day);
-        // listofDays.push(weather);
+    superagent.get(newUrl)
+      .then( data => {
+        let listofDays = data.body.daily.data.map( day => {
+          return new Weather(day);
+        });
+        response.json(listofDays);
+      }).catch(error => {
+        console.log(error);
       });
-      response.json(listofDays);
-    });
-//   catch(error) {
-//     let errorObject = {
-//       status: 500,
-//       responseText: 'john is ugly or something',
-//     }
-//     response.status(500).json(errorObject);
-//   }
+  }
+  catch(error) {
+    let errorObject = {
+      status: 500,
+      responseText: 'john is ugly or something',
+    };
+    response.status(500).json(errorObject);
+  }
 }
 
 function Weather(data) {
@@ -109,14 +97,153 @@ function Weather(data) {
 }
 
 
+// trails
+
+app.get('/trails', handleTrails);
+
+function handleTrails (request, response) {
+  try {
+
+    const url = 'https://www.hikingproject.com/data/get-trails';
+    const queryStringParams = {
+      key: process.env.TRAILS_TOKEN,
+      lat: request.query.latitude,
+      lon: request.query.longitude,
+      maxResults: 10,
+    };
+
+    superagent.get(url)
+      .query(queryStringParams)
+      .then(data => {
+        let trailsData = data.body.trails.map( trail => {
+          return new Hiking(trail);
+        });
+        response.json(trailsData);
+      }).catch(error => {
+        console.log(error);
+      });
+  }
+  catch(error) {
+    let errorObject = {
+      status: 500,
+      responseText: 'john is ugly or something',
+    };
+    response.status(500).json(errorObject);
+  }
+}
+
+
+function Hiking(trail){
+  this.name = trail.name;
+  this.location = trail.location;
+  this.length = trail.length;
+  this.stars = trail.stars;
+  this.star_votes = trail.starVotes;
+  this.summary = trail.summary;
+  this.trail_url = trail.url;
+  this.conditions = trail.conditionDetails;
+  this.condition_date = trail.conditionDate.substring(0,10);
+  this.condition_time = trail.conditionDate.substring(11,20);
+}
+
+
+
+//Movies
+app.get('/movies', handleMovies);
+
+function handleMovies (request, response) {
+  try {
+
+    let url = 'https://api.themoviedb.org/3/search/movie';
+    const location = request.query.search_query;
+    const queryStringParams = {
+      api_key: process.env.MOVIES_TOKEN,
+      query: location,
+    };
+
+
+    superagent.get(url)
+      .query(queryStringParams)
+      .then(data => {
+        let moviesData = data.body.results.map( movie => {
+          return new Movie(movie);
+        });
+        response.json(moviesData);
+      }).catch(error => {
+        console.log(error);
+      });
+  }
+  catch(error) {
+    let errorObject = {
+      status: 500,
+      responseText: 'john is ugly or something',
+    };
+    response.status(500).json(errorObject);
+  }
+}
+
+function Movie(movie){
+  this.title = movie.title;
+  this.overview = movie.overview;
+  this.average_votes = movie.vote_average;
+  this.total_votes = movie.vote_count;
+  this.image_url = 'https://image.tmdb.org/t/p/w500' + movie.poster_path;
+  this.popularity = movie.popularity;
+  this.released_on = movie.release_date;
+}
+
+
+// Restaurants
+
+app.get('/restaurant', handleRestaurants);
+
+function handleRestaurants(request, response) {
+  try {
+    let url = 'https://api.yelp.com/v3/businesses/search';
+    // const location = request.query.search_query;
+    let queryStringParams = {
+      key: process.env.YELP_TOKEN,
+      lat: request.query.latitude,
+      lon: request.query.longitude,
+      maxResults: 10,
+    };
+
+    superagent.get(url)
+      .query(queryStringParams)
+      .then(data => {
+        let restaurantData = data.body.results.map( restaurant => {
+          return new Restaurant(restaurant);
+        });
+        response.json(restaurantData);
+      }).catch(error => {
+        console.log(error);
+      });
+  }
+  catch(error) {
+    let errorObject = {
+      status: 500,
+      responseText: 'john is ugly or something',
+    };
+    response.status(500).json(errorObject);
+  }
+}
+  
+function Restaurant(data) {
+  this.name = data.name;
+  this.image_url = data.image_url;
+  this.price = data.price;
+  this.rating = data.rating;
+  this.url = data.url;
+}
+
 
 
 // SQL locations
 
 app.get('/location', (req,res) => {
-  
+
   const SQL = 'SELECT * FROM location';
-  
+
   client.query(SQL)
     .then( results => {
       if( results.rowCount >= 1 ) {
@@ -128,17 +255,17 @@ app.get('/location', (req,res) => {
     })
     .catch(err => res.status(500).send(err));
 });
-  
+
 app.get('/new', (req,res) => {
 
-  
+
   let SQL = `
       INSERT INTO location (latitude, longitude)
       VALUES($1, $2)
     `;
-  
+
   let VALUES = [req.query.latitude, req.query.longitude];
-  
+
   client.query(SQL, VALUES)
     .then( results => {
       if ( results.rowCount >= 1 ) {
@@ -149,44 +276,9 @@ app.get('/new', (req,res) => {
       }
     })
     .catch(err => res.status(500).send(err));
-  
+
 });
 
-
-// Restaurants
-
-// function handleRestaurants(request, response) {
-
-// let restaurantData = require('./data/restaurants.json');
-//   let listOfRestaurants = [];
-  
-//   let url = 'https://developers.zomato.com/api/v2.1/geocode';
-//   let queryStringParams = {
-// lat: request.query.latitude,
-// lon: request.query.longitude,
-//   };
-  
-// user-key
-//   superagent.get(url)
-//     .query(queryStringParams)
-//     .set('user-key', process.env.ZOMATO_TOKEN)
-//     .then( data => {
-//       let restaurantData = data.body;
-//       restaurantData.nearby_restaurants.forEach(r => {
-//         let restaurant = new Restaurant(r);
-//         listOfRestaurants.push(restaurant);
-//       });
-  
-//       response.json(listOfRestaurants);
-//     });
-  
-// }
-  
-// function Restaurant(data) {
-//   this.name = data.restaurant.name;
-//   this.cuisines = data.restaurant.cuisines;
-//   this.locality = data.restaurant.location.locality;
-// }
 
 
 app.listen( PORT, () => console.log('Server up on', PORT));
